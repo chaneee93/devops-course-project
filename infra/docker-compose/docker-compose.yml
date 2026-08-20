@@ -1,0 +1,54 @@
+version: "3.8"
+
+services:
+  # ── MySQL (로컬에서 RDS 대신) ──
+  mysql:
+    image: mysql:8.0
+    container_name: course-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: course_db
+      MYSQL_USER: course_user
+      MYSQL_PASSWORD: course_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql        # DB 데이터 유지
+      - ./init-db:/docker-entrypoint-initdb.d  # 초기 데이터 자동 실행
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis (로컬에서 ElastiCache 대신) ──
+  redis:
+    image: redis:7-alpine
+    container_name: course-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Keycloak (로컬에서 Cognito 대신) ──
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: course-keycloak
+    restart: unless-stopped
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "8180:8080"
+    command: start-dev
+
+volumes:
+  mysql_data:
+  redis_data:
