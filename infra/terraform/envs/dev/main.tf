@@ -10,3 +10,10 @@
 # module "rds" {
 #   source = "../../modules/rds"
 # }
+#
+# module "elasticache" {
+#   source                  = "../../modules/elasticache"
+#   project_name            = var.project_name
+#   private_subnet_ids      = module.vpc.private_subnet_ids
+#   redis_security_group_id = module.security_groups.redis_sg_id
+# }
