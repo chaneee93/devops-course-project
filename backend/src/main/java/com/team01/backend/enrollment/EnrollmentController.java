@@ -10,25 +10,25 @@ import java.util.Map;
 @RequestMapping("/api/enrollments")
 public class EnrollmentController {
 
+    // 신청은 Facade(Redis 락) 경유, 취소는 Service 직접 호출.
+    private final EnrollmentFacade facade;
     private final EnrollmentService service;
 
-    public EnrollmentController(EnrollmentService service) {
+    public EnrollmentController(EnrollmentFacade facade, EnrollmentService service) {
+        this.facade = facade;
         this.service = service;
     }
 
     @PostMapping
     public ResponseEntity<?> enroll(@RequestBody Map<String, Object> request) {
-        // studentId는 이제 요청 body가 아니라 JWT에서만 꺼냄 —
-        // 클라이언트가 임의의 studentId를 보내 "남의 학생인 척" 신청하는 걸 막기 위함.
+        // studentId는 요청 body가 아니라 JWT에서만 꺼냄 (남의 학생인 척 신청 방지)
         String studentId = JwtUtil.getUserId();
         Long courseId = Long.valueOf(request.get("courseId").toString());
-
-        Enrollment saved = service.enroll(studentId, courseId);
-
+        Enrollment saved = facade.enroll(studentId, courseId);   // ← 분산 락으로 감싼 신청
         return ResponseEntity.ok(Map.of(
-            "enrollmentId", saved.getId(),
-            "courseId", saved.getCourseId(),
-            "status", "SUCCESS"
+                "enrollmentId", saved.getId(),
+                "courseId", saved.getCourseId(),
+                "status", "SUCCESS"
         ));
     }
 
