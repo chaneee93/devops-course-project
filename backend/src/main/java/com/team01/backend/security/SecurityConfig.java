@@ -2,6 +2,7 @@ package com.team01.backend.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -10,16 +11,14 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * Spring Security 설정.
- *
- * - /health/**, GET /api/courses → 인증 없이 접근 가능
- * - POST/DELETE /api/enrollments, GET /api/timetable → JWT 필수
- * - Cognito가 발급한 JWT를 자동으로 검증 (application.yml의 jwk-set-uri 사용)
+ * Spring Security 설정 (운영/일반 환경).
+ * @Profile("!loadtest") — 부하테스트 프로파일일 땐 이 설정이 꺼지고,
+ *   대신 LoadTestSecurityConfig(permitAll)가 켜진다.
  */
 @Configuration
 @EnableWebSecurity
+@Profile("!loadtest")
 public class SecurityConfig {
-
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -39,7 +38,6 @@ public class SecurityConfig {
                     jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())
                 )
             );
-
         return http.build();
     }
 
