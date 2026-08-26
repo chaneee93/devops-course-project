@@ -47,8 +47,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: https://cognito-idp.ap-northeast-3.amazonaws.com/ap-northeast-3_81iUULHdX/.well-known/jwks.json
-          issuer-uri: https://cognito-idp.ap-northeast-3.amazonaws.com/ap-northeast-3_81iUULHdX
+          jwk-set-uri: "${JWK_SET_URI:http://localhost:8180/realms/course/protocol/openid-connect/certs}"
+          issuer-uri: "${ISSUER_URI:http://localhost:8180/realms/course}"
 management:
   endpoints:
     web:
