@@ -1,0 +1,27 @@
+# Cluster Autoscaler — EKS용 Helm values
+# 설치 대상 차트: autoscaler/cluster-autoscaler
+# 로컬 minikube에는 설치 안 함 (싱글 노드라 불필요). AWS EKS 배포 시 사용.
+
+# 어떤 EKS 클러스터의 노드그룹을 자동 확장할지 자동 발견
+autoDiscovery:
+  clusterName: course-eks   # 실제 EKS 클러스터 이름(project_name-eks)에 맞게
+
+awsRegion: ap-northeast-2   # 사용하는 AWS 리전 (provider.tf와 일치시킬 것)
+
+# CA Pod에 붙는 서비스어카운트 — 여기에 IRSA 역할 ARN을 연결
+rbac:
+  serviceAccount:
+    create: true
+    name: cluster-autoscaler
+    annotations:
+      # ↓ Terraform으로 만든 CA 전용 IAM 역할 ARN (IRSA)
+      eks.amazonaws.com/role-arn: "arn:aws:iam::<AWS_ACCOUNT_ID>:role/course-cluster-autoscaler"
+
+# 추가 동작 옵션
+extraArgs:
+  # 여러 노드그룹 크기를 비슷하게 균형 맞춤
+  balance-similar-node-groups: true
+  # 시스템 Pod 있는 노드도 축소 대상에 포함 (비용 절감 강화)
+  skip-nodes-with-system-pods: false
+  # 노드가 이 시간 이상 놀면 축소
+  scale-down-unneeded-time: 5m
