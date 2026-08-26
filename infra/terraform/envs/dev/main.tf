@@ -17,3 +17,11 @@
 #   private_subnet_ids      = module.vpc.private_subnet_ids
 #   redis_security_group_id = module.security_groups.redis_sg_id
 # }
+#
+# module "eks" {
+#   source             = "../../modules/eks"
+#   project_name       = var.project_name
+#   cluster_role_arn   = module.iam.eks_cluster_role_arn
+#   public_subnet_ids  = module.vpc.public_subnet_ids
+#   private_subnet_ids = module.vpc.private_subnet_ids
+# }
