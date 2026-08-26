@@ -26,3 +26,8 @@
 #   public_subnet_ids  = module.vpc.public_subnet_ids
 #   private_subnet_ids = module.vpc.private_subnet_ids
 # }
+#
+# module "cognito" {
+#   source       = "../../modules/cognito"
+#   project_name = var.project_name
+# }
