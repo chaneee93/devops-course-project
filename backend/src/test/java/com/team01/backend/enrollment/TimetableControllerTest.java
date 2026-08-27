@@ -5,6 +5,10 @@ import com.team01.backend.course.CourseRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -26,6 +30,23 @@ class TimetableControllerTest {
 
     @InjectMocks
     private TimetableController controller;
+
+    // getTimetable()이 JwtUtil.getUserId()로 studentId를 꺼내므로,
+    // 단위 테스트에서도 SecurityContext에 sub="temp-student" JWT를 심어준다.
+    @BeforeEach
+    void setUpSecurityContext() {
+        Jwt jwt = Jwt.withTokenValue("test-token")
+                .header("alg", "none")
+                .subject("temp-student")
+                .build();
+        SecurityContextHolder.getContext()
+                .setAuthentication(new JwtAuthenticationToken(jwt));
+    }
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
 
     // ── 헬퍼: 테스트용 Enrollment 생성 ──────────────────────────
     // Enrollment에 setter/id 설정이 없으므로 리플렉션으로 id를 주입
