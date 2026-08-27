@@ -18,8 +18,8 @@ $KCADM create clients -r course \
   -s publicClient=true \
   -s standardFlowEnabled=true \
   -s directAccessGrantsEnabled=true \
-  -s 'redirectUris=["http://localhost:5173/*","http://127.0.0.1:5173/*"]' \
-  -s 'webOrigins=["http://localhost:5173","http://127.0.0.1:5173"]'
+  -s 'redirectUris=["http://localhost:5173/*","http://127.0.0.1:5173/*","http://localhost:8090/*"]' \
+  -s 'webOrigins=["http://localhost:5173","http://127.0.0.1:5173","http://localhost:8090"]'
 
 echo "▶ Verify Profile 필수액션 비활성화"
 $KCADM update authentication/required-actions/VERIFY_PROFILE -r course -s enabled=false

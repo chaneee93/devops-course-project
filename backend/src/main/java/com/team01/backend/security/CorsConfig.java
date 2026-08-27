@@ -26,6 +26,7 @@ public class CorsConfig {
         // 로컬 개발: 프론트 Vite 개발 서버
         config.setAllowedOrigins(List.of(
             "http://localhost:5173",
+            "http://localhost:8090",
             "http://localhost:3000",
             "http://127.0.0.1:5173",
             "http://127.0.0.1:3000",
