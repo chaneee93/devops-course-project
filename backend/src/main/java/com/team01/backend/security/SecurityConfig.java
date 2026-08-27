@@ -10,11 +10,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
-/**
- * Spring Security 설정 (운영/일반 환경).
- * @Profile("!loadtest") — 부하테스트 프로파일일 땐 이 설정이 꺼지고,
- *   대신 LoadTestSecurityConfig(permitAll)가 켜진다.
- */
 @Configuration
 @EnableWebSecurity
 @Profile("!loadtest")
@@ -22,7 +17,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .cors(cors -> {})
+            .cors(cors -> {})   // 기존 CorsConfig의 corsConfigurationSource 빈을 사용
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -30,6 +25,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/health/**").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/courses", "/api/courses/**").permitAll()
                 .anyRequest().authenticated()
             )
@@ -43,7 +40,6 @@ public class SecurityConfig {
 
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        return converter;
+        return new JwtAuthenticationConverter();
     }
 }
