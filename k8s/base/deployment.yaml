@@ -17,7 +17,8 @@ spec:
           image: chaneee93/course-backend:latest
           ports:
             - containerPort: 8080
-          # 비민감 설정은 ConfigMap에서 (DB 비번 등 민감값은 M7-5 Secret으로)
           envFrom:
             - configMapRef:
-                name: course-backend-config
+                name: course-backend-config   # 비민감 (주소)
+            - secretRef:
+                name: course-backend-secret    # 민감 (DB 계정/비번)

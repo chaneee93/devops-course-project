@@ -4,3 +4,11 @@ metadata:
   name: course-backend-config
 data:
   SPRING_PROFILES_ACTIVE: "default"
+  # host.minikube.internal = minikube Pod에서 호스트(내 노트북)를 가리키는 주소
+  DB_HOST: "host.minikube.internal"
+  DB_PORT: "3306"
+  DB_NAME: "course_db"
+  REDIS_HOST: "host.minikube.internal"
+  REDIS_PORT: "6379"
+  ISSUER_URI: "http://host.minikube.internal:8180/realms/course"
+  JWK_SET_URI: "http://host.minikube.internal:8180/realms/course/protocol/openid-connect/certs"
