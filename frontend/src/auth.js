@@ -1,140 +1,112 @@
 /**
- * Cognito 인증 유틸리티.
- * 회원가입, 로그인, 인증코드 확인, 토큰 저장/조회를 처리한다.
+ * Keycloak 인증 유틸리티 (로컬).
+ * Cognito SDK를 걷어내고 Keycloak OIDC 토큰 엔드포인트를 직접 호출한다.
+ * JWT 구조가 동일해 api.js와 각 페이지 코드는 그대로 동작한다.
+ * AWS 전환 시: 아래 URL/clientId만 Cognito 값으로 바꾸면 됨 (env로 주입).
  */
-import {
-  CognitoUserPool,
-  CognitoUser,
-  AuthenticationDetails,
-  CognitoUserAttribute,
-} from 'amazon-cognito-identity-js'
 
-const POOL_DATA = {
-  UserPoolId: 'ap-northeast-3_81iUULHdX',
-  ClientId: 'bbfrmvvt5q6rq95f6mgg0a9oh',
+const KEYCLOAK_URL = import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8180'
+const REALM = import.meta.env.VITE_KEYCLOAK_REALM || 'course'
+const CLIENT_ID = import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'course-frontend'
+
+const TOKEN_URL = `${KEYCLOAK_URL}/realms/${REALM}/protocol/openid-connect/token`
+const STORAGE_KEY = 'course_auth'
+
+// ── localStorage 저장/조회/삭제 헬퍼 ──
+function saveTokens(data) {
+  const tokens = {
+    accessToken: data.access_token,
+    refreshToken: data.refresh_token,
+    // 만료 시각(ms). 실제보다 10초 여유를 둬서 미리 갱신.
+    expiresAt: Date.now() + (data.expires_in - 10) * 1000,
+  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tokens))
+  return tokens
+}
+function loadTokens() {
+  const raw = localStorage.getItem(STORAGE_KEY)
+  return raw ? JSON.parse(raw) : null
+}
+function clearTokens() {
+  localStorage.removeItem(STORAGE_KEY)
 }
 
-const userPool = new CognitoUserPool(POOL_DATA)
-
 /**
- * 회원가입.
- * 성공하면 Cognito가 이메일로 인증 코드를 보낸다.
+ * 로그인 — Keycloak에 password grant로 토큰 요청 후 저장.
  */
-export function signUp({ email, password, name, studentNo }) {
-  return new Promise((resolve, reject) => {
-    const attributes = [
-      new CognitoUserAttribute({ Name: 'email', Value: email }),
-      new CognitoUserAttribute({ Name: 'name', Value: name }),
-      new CognitoUserAttribute({ Name: 'custom:studentNo', Value: studentNo }),
-    ]
-
-    userPool.signUp(email, password, attributes, null, (err, result) => {
-      if (err) return reject(err)
-      resolve(result)
-    })
+export async function signIn({ email, password }) {
+  const body = new URLSearchParams({
+    grant_type: 'password',
+    client_id: CLIENT_ID,
+    username: email,   // Keycloak은 이메일/사용자명 둘 다 허용
+    password,
   })
-}
-
-/**
- * 인증 코드 확인.
- * 가입 시 이메일로 받은 6자리 코드를 검증한다.
- */
-export function confirmSignUp({ email, code }) {
-  return new Promise((resolve, reject) => {
-    const user = new CognitoUser({
-      Username: email,
-      Pool: userPool,
-    })
-
-    user.confirmRegistration(code, true, (err, result) => {
-      if (err) return reject(err)
-      resolve(result)
-    })
+  const res = await fetch(TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
   })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error_description || '로그인 실패')
+  }
+  const data = await res.json()
+  saveTokens(data)
+  return { accessToken: data.access_token }
 }
 
 /**
- * 인증 코드 재전송.
+ * refresh_token으로 액세스 토큰 갱신.
  */
-export function resendConfirmationCode({ email }) {
-  return new Promise((resolve, reject) => {
-    const user = new CognitoUser({
-      Username: email,
-      Pool: userPool,
-    })
-
-    user.resendConfirmationCode((err, result) => {
-      if (err) return reject(err)
-      resolve(result)
-    })
+async function refresh(refreshToken) {
+  const body = new URLSearchParams({
+    grant_type: 'refresh_token',
+    client_id: CLIENT_ID,
+    refresh_token: refreshToken,
   })
-}
-
-/**
- * 로그인.
- * 성공하면 JWT 토큰(idToken, accessToken, refreshToken)이 localStorage에 자동 저장된다.
- */
-export function signIn({ email, password }) {
-  return new Promise((resolve, reject) => {
-    const user = new CognitoUser({
-      Username: email,
-      Pool: userPool,
-    })
-
-    const authDetails = new AuthenticationDetails({
-      Username: email,
-      Password: password,
-    })
-
-    user.authenticateUser(authDetails, {
-      onSuccess: (session) => {
-        resolve({
-          idToken: session.getIdToken().getJwtToken(),
-          accessToken: session.getAccessToken().getJwtToken(),
-          refreshToken: session.getRefreshToken().getToken(),
-        })
-      },
-      onFailure: (err) => reject(err),
-    })
+  const res = await fetch(TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
   })
+  if (!res.ok) return null
+  return saveTokens(await res.json())
 }
 
 /**
- * 현재 로그인된 사용자의 JWT 토큰을 가져온다.
- * 만료됐으면 refreshToken으로 자동 갱신한다.
- * 로그인 안 돼있으면 null 반환.
+ * 현재 유효한 액세스 토큰 반환.
+ * 만료됐으면 refresh_token으로 자동 갱신. 실패 시 null.
+ * (api.js가 매 요청마다 이걸 호출해 Authorization 헤더에 붙인다)
  */
-export function getToken() {
-  return new Promise((resolve) => {
-    const user = userPool.getCurrentUser()
-    if (!user) return resolve(null)
-
-    user.getSession((err, session) => {
-      if (err || !session?.isValid()) return resolve(null)
-      resolve(session.getIdToken().getJwtToken())
-    })
-  })
+export async function getToken() {
+  let tokens = loadTokens()
+  if (!tokens) return null
+  if (Date.now() < tokens.expiresAt) return tokens.accessToken
+  tokens = await refresh(tokens.refreshToken)
+  if (!tokens) {
+    clearTokens()
+    return null
+  }
+  return tokens.accessToken
 }
 
-/**
- * 로그아웃.
- * localStorage에서 토큰 제거.
- */
+/** 로그아웃 — 저장된 토큰 제거. */
 export function signOut() {
-  const user = userPool.getCurrentUser()
-  if (user) user.signOut()
+  clearTokens()
 }
 
-/**
- * 현재 로그인 상태인지 확인.
- */
-export function isAuthenticated() {
-  return new Promise((resolve) => {
-    const user = userPool.getCurrentUser()
-    if (!user) return resolve(false)
+/** 로그인 상태 확인. */
+export async function isAuthenticated() {
+  return (await getToken()) !== null
+}
 
-    user.getSession((err, session) => {
-      resolve(!err && session?.isValid())
-    })
-  })
+// ── 회원가입 관련 — M6-4에서 연결 (지금은 import 깨지지 않게 자리만 유지) ──
+export async function signUp() {
+  throw new Error('회원가입은 M6-4에서 연결됩니다')
+}
+export async function confirmSignUp() {
+  throw new Error('이메일 인증은 로컬(Keycloak)에서는 사용하지 않습니다')
+}
+export async function resendConfirmationCode() {
+  throw new Error('이메일 인증은 로컬(Keycloak)에서는 사용하지 않습니다')
 }
