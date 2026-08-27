@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: course-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: course-backend
+  template:
+    metadata:
+      labels:
+        app: course-backend
+    spec:
+      containers:
+        - name: backend
+          image: chaneee93/course-backend:latest
+          ports:
+            - containerPort: 8080
+          # 비민감 설정은 ConfigMap에서 (DB 비번 등 민감값은 M7-5 Secret으로)
+          envFrom:
+            - configMapRef:
+                name: course-backend-config

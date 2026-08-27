@@ -1,0 +1,6 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: course-backend
+spec:
+  replicas: 2   # AWS는 고가용성 위해 2개
