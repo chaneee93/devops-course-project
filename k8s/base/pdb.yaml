@@ -1,0 +1,9 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: course-backend-pdb
+spec:
+  minAvailable: 1   # 항상 최소 1개 Pod는 살아있게
+  selector:
+    matchLabels:
+      app: course-backend

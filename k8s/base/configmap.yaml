@@ -12,3 +12,4 @@ data:
   REDIS_PORT: "6379"
   ISSUER_URI: "http://host.minikube.internal:8180/realms/course"
   JWK_SET_URI: "http://host.minikube.internal:8180/realms/course/protocol/openid-connect/certs"
+  MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED: "true"
