@@ -1,0 +1,14 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: course-backend
+  labels:
+    release: monitoring   # 이 라벨이 있어야 Prometheus가 인식
+spec:
+  selector:
+    matchLabels:
+      app: course-backend
+  endpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: 15s
