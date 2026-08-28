@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: course-backend
 spec:
-  replicas: 1
+  # replicas는 HPA가 관리하므로 명시 안 함
   selector:
     matchLabels:
       app: course-backend
@@ -22,22 +22,21 @@ spec:
                 name: course-backend-config
             - secretRef:
                 name: course-backend-secret
-          # startup: 느린 초기 구동 보호 (최대 5s*30=150s 대기)
+          # ★ HPA가 CPU 사용률(%)을 계산하려면 requests가 필요
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "320Mi"
+            limits:
+              cpu: "500m"
+              memory: "600Mi"
           startupProbe:
-            httpGet:
-              path: /actuator/health
-              port: 8080
+            httpGet: { path: /actuator/health, port: 8080 }
             failureThreshold: 30
             periodSeconds: 5
-          # liveness: 죽으면 재시작
           livenessProbe:
-            httpGet:
-              path: /actuator/health/liveness
-              port: 8080
+            httpGet: { path: /actuator/health/liveness, port: 8080 }
             periodSeconds: 10
-          # readiness: 준비 안 되면 트래픽 차단
           readinessProbe:
-            httpGet:
-              path: /actuator/health/readiness
-              port: 8080
+            httpGet: { path: /actuator/health/readiness, port: 8080 }
             periodSeconds: 10

@@ -5,3 +5,4 @@ resources:
   - service.yaml
   - configmap.yaml
   - pdb.yaml
+  - hpa.yaml
