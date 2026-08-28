@@ -1,0 +1,11 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: course-backend
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    # TLS: ACM 인증서 ARN 지정 (AWS 전환 시)
+    # alb.ingress.kubernetes.io/certificate-arn: <ACM_CERT_ARN>
+spec:
+  ingressClassName: alb   # 로컬 nginx → AWS alb로 교체
